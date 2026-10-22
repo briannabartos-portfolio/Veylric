@@ -628,7 +628,7 @@ Its main guard permits standalone tests without prompting when imported. Search 
 
 **Practised:** optional arguments, URL encoding, preview and confirmation, helper imports, and preserving a main loop after a helper returns.
 
-## 19. What the tests taught us
+## 19. What the tests taught 
 
 | Test or mistake | What it revealed |
 | --- | --- |
