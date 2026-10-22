@@ -1,0 +1,29 @@
+# Python-generated files and local environments
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# macOS and editor-local settings
+.DS_Store
+.vscode/
+
+# Credentials and local configuration
+.env
+.env.*
+!.env.example
+
+# Local memories and logs
+*memory*.json
+*facts*.json
+*.log
+
+# Preserve these locally without publishing duplicate code or reference images
+/backups/
+/design/
+/veylric_beta/*_backup.py
+/veylric_beta/beta_*_checkpoint/
+
+# Personal/disposable files used during lessons
+/veylric_beta/practice_files*/
+/veylric_beta/move_test/
