@@ -2,7 +2,6 @@
 
 This guide follows the working [`main.py`](../veylric_beta/main.py), from top to bottom. It describes the early Beta 0.3 code, including natural Spotify opening without a second confirmation. Line numbers refer to the version reviewed on October 22, 2026 and will shift as development continues.
 
-This is an AI-assisted study guide, based on the code and our development sessions. “Practised” means a topic was used or tested with guidance, not that it has been independently mastered. “Revisit” identifies suggested study topics; these are not claims about what the learner privately understands. Personal reflections can be added in the final section.
 
 ## 1. The whole program in plain language
 
