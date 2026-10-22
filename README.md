@@ -90,6 +90,8 @@ For file experiments, create disposable files in `veylric_beta/practice_files`. 
 
 ## Validation so far
 
+For a section-by-section explanation of the current code, learning evidence, and topics to revisit, see the [code and learning walkthrough](docs/code-walkthrough.md). It is an AI-assisted study guide; personal reflection prompts are left for the learner to complete.
+
 Manual terminal tests covered streaming, session recall and clearing, case-insensitive commands, clarification and cancellation, Spotify searches, and Ollama connection/missing-model errors. File tests covered approved moves, empty/missing folders, missing source files, and occupied destinations. Isolated temporary-file tests exercised the macOS no-overwrite helper; pretend-move tests checked success/skip/failure counters.
 
 These are development checks, not a comprehensive automated test suite. A model passing an example does not guarantee correct classification on every request.
