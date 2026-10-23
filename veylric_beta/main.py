@@ -3,6 +3,7 @@ import ollama
 import ctypes
 import os
 import subprocess
+import time
 from spotify_search_test import search_spotify
 from intent_test import classify_request
 from pathlib import Path
@@ -83,13 +84,37 @@ def preview_files(files, execute=False):
             print("Simulation complete. No files were changed.")
     else:
         print("Cancelled. No files were changed.")
+# App checks: ask macOS whether an app is running
+def is_app_running(app_name):
+    result = subprocess.run(
+        ["osascript", "-e", f'application "{app_name}" is running'],
+        capture_output=True,
+        text=True
+    )
+    return result.stdout.strip() == "true"
+def wait_for_app(app_name, timeout=5):
+    # Check every half second until the app is running or time runs out
+    deadline = time.time() + timeout
+    while time.time() < deadline:
+        if is_app_running(app_name):
+            return True
+        time.sleep(0.5)
+    return False
 def open_spotify():
+    already_running = is_app_running("Spotify")
     try:
         subprocess.run(["open", "-a", "Spotify"], check=True)
     except subprocess.CalledProcessError:
         print(f"{assistant_name}: I couldn't open Spotify.")
+        return
+
+    # Attempt sent; now verify the outcome
+    if already_running:
+        print(f"{assistant_name}: Spotify was already open, ma'am. I've brought it to the front.")
+    elif wait_for_app("Spotify"):
+        print(f"{assistant_name}: Spotify is open, ma'am.")
     else:
-        print(f"{assistant_name}: I've sent the request to open Spotify.")
+        print(f"{assistant_name}: I asked macOS to open Spotify, but I can't confirm it started.")
 def open_chrome():
     try:
         subprocess.run(["open", "-a", "Google Chrome"], check=True)
