@@ -9,7 +9,8 @@ Veylric is a learning and portfolio project: I am building it incrementally whil
 ## Current abilities
 
 - Stream conversational replies from the locally running `ministral-3:8b` model.
-- Retain the latest five completed chat exchanges in memory; `clear conversation` resets that context. No conversation is saved to disk by the application.
+- Retain the latest five completed chat exchanges in memory; `clear conversation` resets that context.
+- Record what tools actually did (sent, verified, unconfirmed, cancelled, or failed) as action records in the in-memory conversation, so Veylric can answer questions such as "did that work?" honestly and say when it has no record of an action. No conversation is saved to disk by the application.
 - Open Spotify, Chrome, and Messages, and request Chrome to quit if it is running.
 - Confirm that Spotify actually started by checking macOS for up to five seconds, and report whether it was already open, verified, or unconfirmed.
 - Answer time and date questions from the Mac's clock; conversational replies also receive the current date and time.
@@ -113,7 +114,7 @@ These are development checks, not a comprehensive automated test suite. A model 
 - Spotify opening is verified by checking that the app is running; Chrome and Messages report only that macOS accepted the request. Veylric does not verify an app's screen or playback.
 - Time and date questions are recognized from a fixed list of phrases; other wordings go to the model, which receives the current time but can still answer incorrectly.
 - Contextual search depends on the model resolving words like "them"; it can return nothing or mix in extra words from Veylric's replies, which then triggers the `SEARCH` check. Reference words are only recognized directly after search, find, play, for, or up.
-- Conversation can invent facts, miss style instructions, or reuse stale context. Tool results are not yet supplied to chat as a structured action record.
+- Conversation can invent facts, miss style instructions, or reuse stale context. Action records tell the model what tools did, but the model can still phrase them too cautiously or offer abilities it does not have, such as checking search results.
 - History is limited by message count, not token length. Some filesystem errors and interrupted input/streams are not handled yet.
 - Practice paths are fixed in code but are not hardened confinement boundaries; symbolic links and file changes between checks need further review before any real-data use.
 - No deletion, email/calendar access, persistent personal memory, voice, or camera/screen capture is implemented.

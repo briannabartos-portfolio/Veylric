@@ -70,7 +70,8 @@ def extract_search_term(message, history=None):
         if entry["role"] == "user":
             user_text += " " + entry["content"].lower()
             conversation += f"User: {entry['content']}\n"
-        else:
+        elif entry["role"] == "assistant":
+            # Action records (role "system") are skipped; they aren't anyone's words
             veylric_text += " " + entry["content"].lower()
             conversation += f"Veylric: {entry['content']}\n"
 

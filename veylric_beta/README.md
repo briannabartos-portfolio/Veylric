@@ -65,6 +65,8 @@ A personal assistant inspired by JARVIS, built while learning Python.
 - Treat "search for X" after Spotify clarification as a Spotify search.
 - Resolve "them" and "that" from the conversation, checking whether the words came from the user, earlier messages, or Veylric's own replies.
 - Ask for SEARCH approval when search words came only from Veylric's replies.
+- Add action records for tool outcomes (apps, searches, files, time, date) so chat can answer questions about what happened.
+- Keep five exchanges plus their action records, capped at 20 entries.
 
 ## Beta 0.3 tests
 
@@ -81,6 +83,10 @@ A personal assistant inspired by JARVIS, built while learning Python.
 - "Shake It Off" treated as a title, not a reference.
 - "My friend recommended Lorde, find them on spotify" uses the name in the same message, not an earlier one.
 - A wrong chat answer (Fiona Apple for "Dreams") was caught by the SEARCH check when searched for.
+- "Did that work?" and "What did you search for?" answered from action records.
+- "Did you open Chrome?" with no record: Veylric says it has no record.
+- Unconfirmed Spotify opening: Veylric does not claim success.
+- "Is that late?" after asking the time uses the recorded time.
 
 ## Spotify search commands
 

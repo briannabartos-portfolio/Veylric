@@ -19,6 +19,18 @@ last_search_term = None
 repeat_search_phrases = ["search it again", "search that again", "search again", "search for it again", "search for that again"]
 print(f"{assistant_name}: At your service, ma'am. Ready when you are.")
 
+# Action records: Python tells the chat model what tools actually did
+def record_action(text):
+    conversation_history.append({"role": "system", "content": f"Action record: {text}"})
+    trim_history()
+def trim_history():
+    # Keep the latest five exchanges, plus any action records between them
+    user_positions = [index for index, entry in enumerate(conversation_history) if entry["role"] == "user"]
+    if len(user_positions) > 5:
+        del conversation_history[:user_positions[-5]]
+    # Many actions without chatting could still pile up, so cap the total
+    del conversation_history[:-20]
+
 # File organization: build a plan and request approval
 def preview_files(files, execute=False):
     proposed_moves = []
@@ -83,10 +95,13 @@ def preview_files(files, execute=False):
                 f"{skipped_count} skipped, "
                 f"{failed_count} failed."
             )
+            record_action(f"Moved practice files: {moved_count} moved, {skipped_count} skipped, {failed_count} failed.")
         else:
             print("Simulation complete. No files were changed.")
+            record_action("Simulated organising practice files. No files were changed.")
     else:
         print("Cancelled. No files were changed.")
+        record_action("File organisation was cancelled. No files were changed.")
 # App checks: ask macOS whether an app is running
 def is_app_running(app_name):
     result = subprocess.run(
@@ -109,35 +124,44 @@ def open_spotify():
         subprocess.run(["open", "-a", "Spotify"], check=True)
     except subprocess.CalledProcessError:
         print(f"{assistant_name}: I couldn't open Spotify.")
+        record_action("Failed to open Spotify. macOS rejected the request.")
         return
 
     # Attempt sent; now verify the outcome
     if already_running:
         print(f"{assistant_name}: Spotify was already open, ma'am. I've brought it to the front.")
+        record_action("Spotify was already running; brought it to the front.")
     elif wait_for_app("Spotify"):
         print(f"{assistant_name}: Spotify is open, ma'am.")
+        record_action("Opened Spotify. Verified: Spotify is running.")
     else:
         print(f"{assistant_name}: I asked macOS to open Spotify, but I can't confirm it started.")
+        record_action("Asked macOS to open Spotify. Not confirmed: Spotify did not appear to start.")
 def run_spotify_search(search_term=None, needs_approval=False):
     # global lets this function update the setting defined at the top of the file
     global last_search_term
     searched_term = search_spotify(search_term, needs_approval)
     if not searched_term:
+        record_action("A Spotify search was not sent (cancelled, empty, or failed).")
         return
     last_search_term = searched_term
 
     # Search sent; verify Spotify is running (Python can't see the results themselves)
     if wait_for_app("Spotify"):
         print(f"{assistant_name}: Spotify is open, ma'am. The results should be on screen.")
+        record_action(f'Searched Spotify for "{searched_term}". Success: the search was sent and Spotify is running.')
     else:
         print(f"{assistant_name}: I sent the search, but I can't confirm Spotify opened.")
+        record_action(f'Sent a Spotify search for "{searched_term}". Not confirmed: Spotify did not appear to start.')
 def open_chrome():
     try:
         subprocess.run(["open", "-a", "Google Chrome"], check=True)
     except subprocess.CalledProcessError:
         print(f"{assistant_name}: I couldn't open Google Chrome.")
+        record_action("Failed to open Google Chrome.")
     else:
         print(f"{assistant_name}: I've sent the request to open Google Chrome.")
+        record_action("Sent a request to open Google Chrome. Not verified.")
 def close_chrome():
     try:
         subprocess.run(
@@ -146,15 +170,19 @@ def close_chrome():
         )
     except subprocess.CalledProcessError:
         print(f"{assistant_name}: I couldn't close Google Chrome.")
+        record_action("Failed to close Google Chrome.")
     else:
         print(f"{assistant_name}: I've sent the request to close Google Chrome.")
+        record_action("Sent a request to close Google Chrome. Not verified.")
 def open_messages():
     try:
         subprocess.run(["open", "-a", "Messages"], check=True)
     except subprocess.CalledProcessError:
         print(f"{assistant_name}: I couldn't open Messages.")
+        record_action("Failed to open Messages.")
     else:
         print(f"{assistant_name}: I've sent the request to open Messages.")
+        record_action("Sent a request to open Messages. Not verified.")
 def get_practice_files():
     if not practice_folder.is_dir():
         print(f"{assistant_name}: I couldn't find the practice folder.")
@@ -221,9 +249,11 @@ def is_date_question(request):
 def tell_time():
     now = datetime.now()
     print(f"{assistant_name}: It's {now.strftime('%-I:%M %p')}, ma'am.")
+    record_action(f"Told the user the time from the Mac's clock: {now.strftime('%-I:%M %p')}.")
 def tell_date():
     now = datetime.now()
     print(f"{assistant_name}: Today is {now.strftime('%A, %-d %B %Y')}, ma'am.")
+    record_action(f"Told the user the date from the Mac's clock: {now.strftime('%A, %-d %B %Y')}.")
 
 # AI conversation: send a message to Ministral
 def chat_with_veylric(message):
@@ -241,7 +271,12 @@ def chat_with_veylric(message):
                     "The user uses macOS. "
                     "Veylric has app-opening tools handled separately by Python. "
                     "Your conversational reply does not execute tools. "
-                    "Never claim an action succeeded without a tool result. "
+                    "Python adds action records to the conversation describing what tools actually did. "
+                    "Use them to answer questions about actions. Never write action records yourself. "
+                    "If there is no action record for an action, say you have no record of it. "
+                    "Never claim an action succeeded unless an action record says it was verified or successful. "
+                    "Veylric cannot see the screen, search results, or playback, and cannot play music. Never offer to do these things. "
+                    "Write plain text without Markdown such as bold or headings; replies appear in a terminal. "
                     "If asked to open something without a clear target, ask what to open. "
                     "If a question depends on information the user has not provided in this conversation, say you don't know and ask for it. Do not invent personal facts or imply you remember them. "
                     f"The current date and time is {current_time}. "
@@ -261,7 +296,7 @@ def chat_with_veylric(message):
     print()
     conversation_history.append(user_message)
     conversation_history.append({"role": "assistant", "content": reply})
-    del conversation_history[:-10]
+    trim_history()
     return reply
 
 # Main loop: read requests and choose an ability
