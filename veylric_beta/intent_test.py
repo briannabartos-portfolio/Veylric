@@ -5,6 +5,7 @@ def classify_request(message):
         return "unknown"
     response = ollama.chat(
         model="ministral-3:8b",
+        options={"temperature": 0},
         messages=[
             {
                 "role": "system",

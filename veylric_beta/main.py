@@ -99,7 +99,10 @@ def open_chrome():
         print(f"{assistant_name}: I've sent the request to open Google Chrome.")
 def close_chrome():
     try:
-        subprocess.run(["osascript", "-e", 'tell application "Google Chrome" to quit'], check=True)
+        subprocess.run(
+            ["osascript", "-e", 'if application "Google Chrome" is running then tell application "Google Chrome" to quit'],
+            check=True
+        )
     except subprocess.CalledProcessError:
         print(f"{assistant_name}: I couldn't close Google Chrome.")
     else:
@@ -246,7 +249,11 @@ while True:
         print(f"{assistant_name}: This session's conversation history has been cleared.")
     else:
         try:
-            intent = classify_request(message)
+            # Only ask the classifier when Spotify is mentioned
+            if "spotify" in message.lower():
+                intent = classify_request(message)
+            else:
+                intent = "unknown"
 
             if intent == "open_spotify":
                 print(f"{assistant_name}: Certainly, ma'am. Opening Spotify.")
