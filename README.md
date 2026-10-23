@@ -16,6 +16,7 @@ Veylric is a learning and portfolio project: I am building it incrementally whil
 - Classify natural requests to open Spotify using a restricted set of labels. The classifier is only consulted when a message mentions Spotify. In the current Beta 0.3 working code, a clear opening request runs without a second confirmation.
 - Ask for clarification on ambiguous Spotify requests and use one-turn context for the tested follow-ups `open it` and `launch it`.
 - Search Spotify from typed commands or natural requests such as "could you find Fleetwood Mac on Spotify?". The model extracts the search words; Python keeps only words the user actually said. Searches run directly and are verified by checking that Spotify is running; if the model tried to add words, Veylric shows a preview and asks for `SEARCH` approval first. Search does not request playback.
+- Use session context for searches: `search it again` repeats the last search, `search for Adele` works as an answer to Spotify clarification, and requests such as "search for them on Spotify" are resolved from the in-memory conversation. Words from the user's earlier messages run directly with a note; words that only appear in Veylric's own replies require `SEARCH` approval. `clear conversation` also forgets the last search.
 - Preview organization of `.jpg` and `.txt` files in a dedicated practice folder; unknown types stay unchanged.
 - Attempt approved practice-file moves with source checks, destination checks, macOS no-overwrite protection, and outcome counts.
 
@@ -76,6 +77,9 @@ What time is it?
 What's the date?
 Could you open Spotify, please?
 search spotify for Fleetwood Mac
+search it again
+Who sang Dreams?
+Search for them on Spotify
 clear conversation
 shutdown
 ```
@@ -108,6 +112,7 @@ These are development checks, not a comprehensive automated test suite. A model 
 - Search supports defined command formats; the installed Spotify client displays plus signs between words in URI searches. Two queries produced relevant results, but special-character handling needs broader testing.
 - Spotify opening is verified by checking that the app is running; Chrome and Messages report only that macOS accepted the request. Veylric does not verify an app's screen or playback.
 - Time and date questions are recognized from a fixed list of phrases; other wordings go to the model, which receives the current time but can still answer incorrectly.
+- Contextual search depends on the model resolving words like "them"; it can return nothing or mix in extra words from Veylric's replies, which then triggers the `SEARCH` check. Reference words are only recognized directly after search, find, play, for, or up.
 - Conversation can invent facts, miss style instructions, or reuse stale context. Tool results are not yet supplied to chat as a structured action record.
 - History is limited by message count, not token length. Some filesystem errors and interrupted input/streams are not handled yet.
 - Practice paths are fixed in code but are not hardened confinement boundaries; symbolic links and file changes between checks need further review before any real-data use.
@@ -115,7 +120,7 @@ These are development checks, not a comprehensive automated test suite. A model 
 
 ## Roadmap
 
-- **Beta 0.3:** smoother Spotify conversation (clear requests, clarification, and verified opening done), actual date/time (done), contextual search, and a separate playback feasibility investigation.
+- **Beta 0.3:** smoother Spotify conversation (clear requests, clarification, and verified opening done), actual date/time (done), natural and contextual search (done), and a separate playback feasibility investigation.
 - **Beta 0.4:** document workflows, explicit folder access, stronger file safeguards, and recovery controls.
 - **Beta 0.5:** on-demand visual assistance, with separate camera/screen choices and explicit capture controls.
 - **Later:** push-to-talk voice, a JARVIS-inspired interface, and user-controlled persistent memory.

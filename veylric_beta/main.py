@@ -332,13 +332,18 @@ while True:
             elif intent == "search_spotify":
                 if "play" in request.split():
                     print(f"{assistant_name}: I can't start playback yet, ma'am, but I can search for it.")
-                search_term, words_removed = extract_search_term(message)
+                search_term, source = extract_search_term(message, conversation_history)
+                # Safeguard: words from the model itself get checked before searching
+                needs_approval = source in ["veylric", "invented"]
                 if search_term is None:
                     print(f"{assistant_name}: What would you like me to search for?")
-                elif words_removed:
-                    # Safeguard: the model tried to add words, so ask before searching
+                elif source == "earlier":
+                    print(f"{assistant_name}: Using what you mentioned earlier, ma'am.")
+                elif source == "veylric":
+                    print(f"{assistant_name}: Those words came from my own reply, so I'd like to check first, ma'am.")
+                elif source == "invented":
                     print(f"{assistant_name}: I'd like to check before searching, ma'am.")
-                run_spotify_search(search_term, needs_approval=words_removed)
+                run_spotify_search(search_term, needs_approval=needs_approval)
             elif intent == "clarify_spotify":
                 pending_clarification = "spotify"
                 print(f"{assistant_name}: What would you like me to do with Spotify?")

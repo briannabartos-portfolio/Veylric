@@ -59,8 +59,12 @@ A personal assistant inspired by JARVIS, built while learning Python.
 - Answer time and date questions from the Mac's clock.
 - Give conversational replies the current date and time.
 - Understand natural Spotify search requests and extract the search words.
-- Drop any search words the model invented; ask for SEARCH approval only when that happens.
+- Drop any search words the model invented; ask for SEARCH approval when that happens.
 - Run normal searches without approval and verify that Spotify is running.
+- Remember the last search for the session; `search it again` repeats it and `clear conversation` forgets it.
+- Treat "search for X" after Spotify clarification as a Spotify search.
+- Resolve "them" and "that" from the conversation, checking whether the words came from the user, earlier messages, or Veylric's own replies.
+- Ask for SEARCH approval when search words came only from Veylric's replies.
 
 ## Beta 0.3 tests
 
@@ -71,6 +75,12 @@ A personal assistant inspired by JARVIS, built while learning Python.
 - Natural search extraction for artists, songs, podcasts, and moods.
 - Invented words ("Folklore Evermore") removed and SEARCH approval triggered.
 - Cancelled and mistyped approvals do not open Spotify.
+- Repeat search before any search, after a search, and after clearing the conversation.
+- "Search for them" after Veylric named Fleetwood Mac: SEARCH approval requested.
+- "Find them" after the user mentioned Lorde: searched directly with a note.
+- "Shake It Off" treated as a title, not a reference.
+- "My friend recommended Lorde, find them on spotify" uses the name in the same message, not an earlier one.
+- A wrong chat answer (Fiona Apple for "Dreams") was caught by the SEARCH check when searched for.
 
 ## Spotify search commands
 

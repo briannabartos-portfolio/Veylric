@@ -30,22 +30,64 @@ def classify_request(message):
         suggested_intent = "unknown"
 
     return suggested_intent
-def extract_search_term(message):
+reference_words = ["them", "they", "that", "it", "this", "those", "these", "him", "her"]
+# A reference word only counts right after one of these, as in "find them" or "search for that"
+reference_starters = ["search", "find", "play", "for", "up"]
+filler_words = reference_words + ["for", "on", "me", "please", "search", "find", "play", "spotify"]
+# Word sources from safest to riskiest
+word_sources = ["request", "earlier", "veylric", "invented"]
+plain_prompt = (
+    "Extract only the words to search for on Spotify from the user's request. "
+    "Remove polite words, the word Spotify, and verbs such as search, find, or play. "
+    "Use only words that appear in the request. Never add names or titles. "
+    "Return only the search words on a single line, with no quotes, notes, or explanation. "
+    "If there is nothing specific to search for, return NONE."
+)
+context_prompt = (
+    "The user's current request uses words such as them, that, or it. "
+    "Return the name or title those words refer to. "
+    "Look first in the current request itself, then in the recent conversation, most recent first. "
+    "Never add names or titles that do not appear in the request or the conversation. "
+    "Return only the search words on a single line, with no quotes, notes, or explanation. "
+    "If it is unclear what they refer to, return NONE."
+)
+def uses_reference(message):
+    words = [word.strip(".,!?") for word in message.lower().split()]
+    for index in range(1, len(words)):
+        if words[index] in reference_words and words[index - 1] in reference_starters:
+            return True
+    return False
+def extract_search_term(message, history=None):
+    # Only give the model the conversation when the request points back to it
+    if not uses_reference(message):
+        history = []
+    history = history or []
+
+    user_text = ""
+    veylric_text = ""
+    conversation = ""
+    for entry in history:
+        if entry["role"] == "user":
+            user_text += " " + entry["content"].lower()
+            conversation += f"User: {entry['content']}\n"
+        else:
+            veylric_text += " " + entry["content"].lower()
+            conversation += f"Veylric: {entry['content']}\n"
+
+    # Ordinary requests keep the original prompt; references get the context prompt
+    if conversation:
+        system_prompt = context_prompt
+        prompt = f"Recent conversation:\n{conversation}\nCurrent request: {message}"
+    else:
+        system_prompt = plain_prompt
+        prompt = message
+
     response = ollama.chat(
         model="ministral-3:8b",
         options={"temperature": 0, "num_predict": 30},
         messages=[
-            {
-                "role": "system",
-                "content": (
-                    "Extract only the words to search for on Spotify from the user's request. "
-                    "Remove polite words, the word Spotify, and verbs such as search, find, or play. "
-                    "Use only words that appear in the request. Never add names or titles. "
-                    "Return only the search words on a single line, with no quotes, notes, or explanation. "
-                    "If there is nothing specific to search for, return NONE."
-                )
-            },
-            {"role": "user", "content": message}
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": prompt}
         ]
     )
 
@@ -54,24 +96,38 @@ def extract_search_term(message):
     first_line = reply.split("\n")[0]
     search_term = " ".join(first_line.split()).strip("\"'")
     if search_term.upper() == "NONE":
-        return None, False
+        return None, "request"
 
-    # Drop any word the model added that the user never said
+    # Check where each word came from; drop any word nobody said
     kept_words = []
-    words_removed = False
+    riskiest_source = "request"
     for word in search_term.split():
-        if word.lower().strip(".,!?") in message.lower():
-            kept_words.append(word)
+        clean_word = word.lower().strip(".,!?")
+        if clean_word in message.lower():
+            source = "request"
+        elif clean_word in user_text:
+            source = "earlier"
+        elif clean_word in veylric_text:
+            source = "veylric"
         else:
-            words_removed = True
+            source = "invented"
+
+        if source != "invented":
+            kept_words.append(word.strip(".,!?"))
+        if word_sources.index(source) > word_sources.index(riskiest_source):
+            riskiest_source = source
     search_term = " ".join(kept_words)
+
+    # Filler on its own ("for", "them") is not a real search
+    if all(word.lower().strip(".,!?") in filler_words for word in kept_words):
+        search_term = ""
 
     # Python checks the model's answer before it is used
     if not search_term or len(search_term) > 100:
-        return None, False
+        return None, "request"
 
-    # words_removed tells the caller the model tried to add something
-    return search_term, words_removed
+    # riskiest_source tells the caller how much to trust the words
+    return search_term, riskiest_source
 if __name__ == "__main__":
     message = input("Request: ").strip()
     print(f"Request received: {message}")
@@ -82,10 +138,9 @@ if __name__ == "__main__":
     if suggested_intent == "open_spotify":
         print("Preview: I would call the Spotify-opening function.")
     elif suggested_intent == "search_spotify":
-        search_term, words_removed = extract_search_term(message)
+        search_term, source = extract_search_term(message)
         print(f"Preview: I would search Spotify for: {search_term}")
-        if words_removed:
-            print("Preview: The model added words, so I would ask for SEARCH approval.")
+        print(f"Preview: Riskiest word source: {source}")
     elif suggested_intent == "clarify_spotify":
         print("Preview: What would you like me to do with Spotify?")
     else:
