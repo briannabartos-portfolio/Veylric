@@ -6,7 +6,7 @@ import subprocess
 import time
 from datetime import datetime
 from spotify_search_test import search_spotify
-from intent_test import classify_request
+from intent_test import classify_request, extract_search_term
 from pathlib import Path
 
 # Settings: folder locations and assistant name
@@ -305,6 +305,13 @@ while True:
             if intent == "open_spotify":
                 print(f"{assistant_name}: Certainly, ma'am. Opening Spotify.")
                 open_spotify()
+            elif intent == "search_spotify":
+                if "play" in request.split():
+                    print(f"{assistant_name}: I can't start playback yet, ma'am, but I can search for it.")
+                search_term = extract_search_term(message)
+                if search_term is None:
+                    print(f"{assistant_name}: What would you like me to search for?")
+                search_spotify(search_term)
             elif intent == "clarify_spotify":
                 pending_clarification = "spotify"
                 print(f"{assistant_name}: What would you like me to do with Spotify?")
