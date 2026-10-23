@@ -8,7 +8,7 @@ def search_spotify(search_term=None, needs_approval=False):
     search_term = search_term.strip()
     if not search_term:
         print("No search entered.")
-        return False
+        return None
 
     encoded_term = quote(search_term, safe="")
 
@@ -20,7 +20,7 @@ def search_spotify(search_term=None, needs_approval=False):
         approval = input("Type SEARCH to open these results, or press Enter to cancel: ").strip()
         if approval != "SEARCH":
             print("Cancelled. Spotify was not opened.")
-            return False
+            return None
     else:
         print(f'Searching Spotify for "{search_term}".')
 
@@ -28,10 +28,10 @@ def search_spotify(search_term=None, needs_approval=False):
         subprocess.run(["open", search_uri], check=True)
     except subprocess.CalledProcessError:
         print("Couldn't open the Spotify search.")
-        return False
+        return None
 
-    # True means the request was sent; the caller verifies the outcome
-    return True
+    # Return the words searched so the caller can verify and remember them
+    return search_term
 
 if __name__ == "__main__":
     if search_spotify():

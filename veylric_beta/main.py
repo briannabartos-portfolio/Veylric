@@ -15,6 +15,8 @@ move_test_folder = Path(__file__).parent / "move_test"
 assistant_name = "Veylric"
 conversation_history = []
 pending_clarification = None
+last_search_term = None
+repeat_search_phrases = ["search it again", "search that again", "search again", "search for it again", "search for that again"]
 print(f"{assistant_name}: At your service, ma'am. Ready when you are.")
 
 # File organization: build a plan and request approval
@@ -117,8 +119,12 @@ def open_spotify():
     else:
         print(f"{assistant_name}: I asked macOS to open Spotify, but I can't confirm it started.")
 def run_spotify_search(search_term=None, needs_approval=False):
-    if not search_spotify(search_term, needs_approval):
+    # global lets this function update the setting defined at the top of the file
+    global last_search_term
+    searched_term = search_spotify(search_term, needs_approval)
+    if not searched_term:
         return
+    last_search_term = searched_term
 
     # Search sent; verify Spotify is running (Python can't see the results themselves)
     if wait_for_app("Spotify"):
@@ -268,6 +274,9 @@ while True:
     if previous_clarification == "spotify":
         if request in ["open it", "launch it"]:
             message = "Please open Spotify."
+        elif request.startswith(("search", "find", "look up", "look for", "play")) and "spotify" not in request:
+            # "search for Adele" → "search for Adele on Spotify", then the usual checks apply
+            message = f"{message} on Spotify"
 
     if request == "shutdown":
         print(f"{assistant_name}: Shutting down, ma'am.")
@@ -296,8 +305,14 @@ while True:
         practice_files = get_practice_files()
         if practice_files is not None:
             preview_files(practice_files, execute=True)
+    elif request.rstrip("?.!").removesuffix(" on spotify") in repeat_search_phrases:
+        if last_search_term:
+            run_spotify_search(last_search_term)
+        else:
+            print(f"{assistant_name}: I haven't searched for anything yet this session, ma'am.")
     elif request == "clear conversation":
         conversation_history.clear()
+        last_search_term = None
         print(f"{assistant_name}: This session's conversation history has been cleared.")
     elif is_time_question(request):
         tell_time()
