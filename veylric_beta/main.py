@@ -116,6 +116,15 @@ def open_spotify():
         print(f"{assistant_name}: Spotify is open, ma'am.")
     else:
         print(f"{assistant_name}: I asked macOS to open Spotify, but I can't confirm it started.")
+def run_spotify_search(search_term=None, needs_approval=False):
+    if not search_spotify(search_term, needs_approval):
+        return
+
+    # Search sent; verify Spotify is running (Python can't see the results themselves)
+    if wait_for_app("Spotify"):
+        print(f"{assistant_name}: Spotify is open, ma'am. The results should be on screen.")
+    else:
+        print(f"{assistant_name}: I sent the search, but I can't confirm Spotify opened.")
 def open_chrome():
     try:
         subprocess.run(["open", "-a", "Google Chrome"], check=True)
@@ -271,10 +280,10 @@ while True:
     elif request == "open spotify":
         open_spotify()
     elif request in ["search spotify", "search spotify for"]:
-        search_spotify()
+        run_spotify_search()
     elif request.startswith("search spotify for "):
         search_term = message[len("search spotify for "):].strip()
-        search_spotify(search_term)
+        run_spotify_search(search_term)
     elif request == "open chrome":
         open_chrome()
     elif request == "close chrome":
@@ -308,10 +317,13 @@ while True:
             elif intent == "search_spotify":
                 if "play" in request.split():
                     print(f"{assistant_name}: I can't start playback yet, ma'am, but I can search for it.")
-                search_term = extract_search_term(message)
+                search_term, words_removed = extract_search_term(message)
                 if search_term is None:
                     print(f"{assistant_name}: What would you like me to search for?")
-                search_spotify(search_term)
+                elif words_removed:
+                    # Safeguard: the model tried to add words, so ask before searching
+                    print(f"{assistant_name}: I'd like to check before searching, ma'am.")
+                run_spotify_search(search_term, needs_approval=words_removed)
             elif intent == "clarify_spotify":
                 pending_clarification = "spotify"
                 print(f"{assistant_name}: What would you like me to do with Spotify?")

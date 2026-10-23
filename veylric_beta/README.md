@@ -58,6 +58,9 @@ A personal assistant inspired by JARVIS, built while learning Python.
 - Quit Chrome only if it is running.
 - Answer time and date questions from the Mac's clock.
 - Give conversational replies the current date and time.
+- Understand natural Spotify search requests and extract the search words.
+- Drop any search words the model invented; ask for SEARCH approval only when that happens.
+- Run normal searches without approval and verify that Spotify is running.
 
 ## Beta 0.3 tests
 
@@ -65,6 +68,9 @@ A personal assistant inspired by JARVIS, built while learning Python.
 - Open Spotify while already open: reported as already open.
 - Time and date phrases, including a curly apostrophe, answered by Python.
 - "What time does the shop close" sent to conversation, not the clock.
+- Natural search extraction for artists, songs, podcasts, and moods.
+- Invented words ("Folklore Evermore") removed and SEARCH approval triggered.
+- Cancelled and mistyped approvals do not open Spotify.
 
 ## Spotify search commands
 

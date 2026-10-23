@@ -15,7 +15,7 @@ Veylric is a learning and portfolio project: I am building it incrementally whil
 - Answer time and date questions from the Mac's clock; conversational replies also receive the current date and time.
 - Classify natural requests to open Spotify using a restricted set of labels. The classifier is only consulted when a message mentions Spotify. In the current Beta 0.3 working code, a clear opening request runs without a second confirmation.
 - Ask for clarification on ambiguous Spotify requests and use one-turn context for the tested follow-ups `open it` and `launch it`.
-- Open Spotify search results after a preview and explicit `SEARCH` confirmation. Search does not request playback.
+- Search Spotify from typed commands or natural requests such as "could you find Fleetwood Mac on Spotify?". The model extracts the search words; Python keeps only words the user actually said. Searches run directly and are verified by checking that Spotify is running; if the model tried to add words, Veylric shows a preview and asks for `SEARCH` approval first. Search does not request playback.
 - Preview organization of `.jpg` and `.txt` files in a dedicated practice folder; unknown types stay unchanged.
 - Attempt approved practice-file moves with source checks, destination checks, macOS no-overwrite protection, and outcome counts.
 
@@ -31,7 +31,7 @@ Typed request
     └── Anything else → conversational response
 ```
 
-The model suggests labels; Python selects from implemented behaviors. Model output is not executed as shell commands. File moves require `APPROVE`; exact app-opening commands run immediately. These controls have been tested in disposable folders, but are not a security sandbox.
+The model suggests labels; Python selects from implemented behaviors. Model output is not executed as shell commands. File moves require `APPROVE`; app opening and Spotify searches run immediately, with a `SEARCH` check only when extracted search words looked suspicious. These controls have been tested in disposable folders, but are not a security sandbox.
 
 ## Setup
 

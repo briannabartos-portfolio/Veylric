@@ -53,19 +53,25 @@ def extract_search_term(message):
     reply = response["message"]["content"].strip()
     first_line = reply.split("\n")[0]
     search_term = " ".join(first_line.split()).strip("\"'")
+    if search_term.upper() == "NONE":
+        return None, False
 
     # Drop any word the model added that the user never said
     kept_words = []
+    words_removed = False
     for word in search_term.split():
         if word.lower().strip(".,!?") in message.lower():
             kept_words.append(word)
+        else:
+            words_removed = True
     search_term = " ".join(kept_words)
 
     # Python checks the model's answer before it is used
-    if not search_term or search_term.upper() == "NONE" or len(search_term) > 100:
-        return None
+    if not search_term or len(search_term) > 100:
+        return None, False
 
-    return search_term
+    # words_removed tells the caller the model tried to add something
+    return search_term, words_removed
 if __name__ == "__main__":
     message = input("Request: ").strip()
     print(f"Request received: {message}")
@@ -76,7 +82,10 @@ if __name__ == "__main__":
     if suggested_intent == "open_spotify":
         print("Preview: I would call the Spotify-opening function.")
     elif suggested_intent == "search_spotify":
-        print(f"Preview: I would search Spotify for: {extract_search_term(message)}")
+        search_term, words_removed = extract_search_term(message)
+        print(f"Preview: I would search Spotify for: {search_term}")
+        if words_removed:
+            print("Preview: The model added words, so I would ask for SEARCH approval.")
     elif suggested_intent == "clarify_spotify":
         print("Preview: What would you like me to do with Spotify?")
     else:
