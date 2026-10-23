@@ -4,6 +4,7 @@ import ctypes
 import os
 import subprocess
 import time
+from datetime import datetime
 from spotify_search_test import search_spotify
 from intent_test import classify_request
 from pathlib import Path
@@ -193,9 +194,26 @@ def test_file_move():
     print(f"Moved: {source_path.name}")
     print(f"To: {destination_path}")
 
+# Date and time: Python reads the Mac's clock so the model never guesses
+time_phrases = ["what time is it", "what's the time", "what is the time", "current time"]
+date_phrases = ["what's the date", "what is the date", "today's date", "what day is it", "what's today", "what is today"]
+def is_time_question(request):
+    request = request.replace("’", "'")
+    return any(phrase in request for phrase in time_phrases)
+def is_date_question(request):
+    request = request.replace("’", "'")
+    return any(phrase in request for phrase in date_phrases)
+def tell_time():
+    now = datetime.now()
+    print(f"{assistant_name}: It's {now.strftime('%-I:%M %p')}, ma'am.")
+def tell_date():
+    now = datetime.now()
+    print(f"{assistant_name}: Today is {now.strftime('%A, %-d %B %Y')}, ma'am.")
+
 # AI conversation: send a message to Ministral
 def chat_with_veylric(message):
     user_message = {"role": "user", "content": message}
+    current_time = datetime.now().strftime("%A, %-d %B %Y, %-I:%M %p")
     stream = ollama.chat(
         model="ministral-3:8b",
         stream=True,
@@ -211,7 +229,7 @@ def chat_with_veylric(message):
                     "Never claim an action succeeded without a tool result. "
                     "If asked to open something without a clear target, ask what to open. "
                     "If a question depends on information the user has not provided in this conversation, say you don't know and ask for it. Do not invent personal facts or imply you remember them. "
-                    "Use time-neutral greetings; you are not given the current time. "
+                    f"The current date and time is {current_time}. "
                 )
             },
         ] + conversation_history + [user_message]
@@ -272,6 +290,10 @@ while True:
     elif request == "clear conversation":
         conversation_history.clear()
         print(f"{assistant_name}: This session's conversation history has been cleared.")
+    elif is_time_question(request):
+        tell_time()
+    elif is_date_question(request):
+        tell_date()
     else:
         try:
             # Only ask the classifier when Spotify is mentioned
