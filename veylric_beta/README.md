@@ -50,6 +50,22 @@ A personal assistant inspired by JARVIS, built while learning Python.
 - Summarize real file actions with moved, skipped, and failed counts.
 - Search Spotify after previewing the search words and receiving SEARCH approval.
 
+## Beta 0.3 additions (in progress)
+
+- Run clear Spotify opening requests without a second confirmation.
+- Only consult the classifier when a message mentions Spotify.
+- Verify that Spotify is running after opening it, and report already-open, verified, or unconfirmed outcomes.
+- Quit Chrome only if it is running.
+- Answer time and date questions from the Mac's clock.
+- Give conversational replies the current date and time.
+
+## Beta 0.3 tests
+
+- Open Spotify while closed: reported as verified.
+- Open Spotify while already open: reported as already open.
+- Time and date phrases, including a curly apostrophe, answered by Python.
+- "What time does the shop close" sent to conversation, not the clock.
+
 ## Spotify search commands
 
 - search spotify
@@ -59,6 +75,7 @@ A personal assistant inspired by JARVIS, built while learning Python.
 ## Current limitations
 
 - AI tool selection supports Spotify opening only.
+- Time and date questions use a fixed phrase list.
 - Spotify search uses defined command formats.
 - Search opens results; it does not request playback.
 - Model classifications and conversational replies can be wrong.

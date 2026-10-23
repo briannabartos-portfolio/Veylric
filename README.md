@@ -10,8 +10,10 @@ Veylric is a learning and portfolio project: I am building it incrementally whil
 
 - Stream conversational replies from the locally running `ministral-3:8b` model.
 - Retain the latest five completed chat exchanges in memory; `clear conversation` resets that context. No conversation is saved to disk by the application.
-- Open Spotify, Chrome, and Messages, and request Chrome to quit.
-- Classify natural requests to open Spotify using a restricted set of labels. In the current Beta 0.3 working code, a clear opening request runs without a second confirmation.
+- Open Spotify, Chrome, and Messages, and request Chrome to quit if it is running.
+- Confirm that Spotify actually started by checking macOS for up to five seconds, and report whether it was already open, verified, or unconfirmed.
+- Answer time and date questions from the Mac's clock; conversational replies also receive the current date and time.
+- Classify natural requests to open Spotify using a restricted set of labels. The classifier is only consulted when a message mentions Spotify. In the current Beta 0.3 working code, a clear opening request runs without a second confirmation.
 - Ask for clarification on ambiguous Spotify requests and use one-turn context for the tested follow-ups `open it` and `launch it`.
 - Open Spotify search results after a preview and explicit `SEARCH` confirmation. Search does not request playback.
 - Preview organization of `.jpg` and `.txt` files in a dedicated practice folder; unknown types stay unchanged.
@@ -22,9 +24,11 @@ Veylric is a learning and portfolio project: I am building it incrementally whil
 ```text
 Typed request
     ├── Defined command → Python tool
-    └── Otherwise → model classifier → validated label
-                       ├── Spotify tool or clarification
-                       └── conversational response
+    ├── Time/date question → Python reads the clock
+    ├── Mentions Spotify → model classifier → validated label
+    │                  ├── Spotify tool or clarification
+    │                  └── conversational response
+    └── Anything else → conversational response
 ```
 
 The model suggests labels; Python selects from implemented behaviors. Model output is not executed as shell commands. File moves require `APPROVE`; exact app-opening commands run immediately. These controls have been tested in disposable folders, but are not a security sandbox.
@@ -68,6 +72,8 @@ Spotify and Chrome commands require those applications to be installed. macOS ma
 
 ```text
 Hello Veylric.
+What time is it?
+What's the date?
 Could you open Spotify, please?
 search spotify for Fleetwood Mac
 clear conversation
@@ -92,7 +98,7 @@ For file experiments, create disposable files in `veylric_beta/practice_files`. 
 
 For a section-by-section explanation of the current code, learning evidence, and topics to revisit, see the [code and learning walkthrough](docs/code-walkthrough.md). It is an AI-assisted study guide; personal reflection prompts are left for the learner to complete.
 
-Manual terminal tests covered streaming, session recall and clearing, case-insensitive commands, clarification and cancellation, Spotify searches, and Ollama connection/missing-model errors. File tests covered approved moves, empty/missing folders, missing source files, and occupied destinations. Isolated temporary-file tests exercised the macOS no-overwrite helper; pretend-move tests checked success/skip/failure counters.
+Manual terminal tests covered streaming, session recall and clearing, case-insensitive commands, clarification and cancellation, Spotify searches, and Ollama connection/missing-model errors. Beta 0.3 checks covered opening Spotify when closed and when already open, and time/date phrase detection, including questions such as "what time does the shop close" that should go to conversation instead. File tests covered approved moves, empty/missing folders, missing source files, and occupied destinations. Isolated temporary-file tests exercised the macOS no-overwrite helper; pretend-move tests checked success/skip/failure counters.
 
 These are development checks, not a comprehensive automated test suite. A model passing an example does not guarantee correct classification on every request.
 
@@ -100,7 +106,8 @@ These are development checks, not a comprehensive automated test suite. A model 
 
 - Natural tool interpretation currently supports Spotify opening, not arbitrary tools. Negation and ambiguity have been tested with examples but can still be misclassified.
 - Search supports defined command formats; the installed Spotify client displays plus signs between words in URI searches. Two queries produced relevant results, but special-character handling needs broader testing.
-- App-opening success means macOS accepted the request; Veylric does not verify the app's screen or playback.
+- Spotify opening is verified by checking that the app is running; Chrome and Messages report only that macOS accepted the request. Veylric does not verify an app's screen or playback.
+- Time and date questions are recognized from a fixed list of phrases; other wordings go to the model, which receives the current time but can still answer incorrectly.
 - Conversation can invent facts, miss style instructions, or reuse stale context. Tool results are not yet supplied to chat as a structured action record.
 - History is limited by message count, not token length. Some filesystem errors and interrupted input/streams are not handled yet.
 - Practice paths are fixed in code but are not hardened confinement boundaries; symbolic links and file changes between checks need further review before any real-data use.
@@ -108,7 +115,7 @@ These are development checks, not a comprehensive automated test suite. A model 
 
 ## Roadmap
 
-- **Beta 0.3:** smoother Spotify conversation, contextual search, actual date/time, and a separate playback feasibility investigation.
+- **Beta 0.3:** smoother Spotify conversation (clear requests, clarification, and verified opening done), actual date/time (done), contextual search, and a separate playback feasibility investigation.
 - **Beta 0.4:** document workflows, explicit folder access, stronger file safeguards, and recovery controls.
 - **Beta 0.5:** on-demand visual assistance, with separate camera/screen choices and explicit capture controls.
 - **Later:** push-to-talk voice, a JARVIS-inspired interface, and user-controlled persistent memory.
