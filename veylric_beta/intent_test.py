@@ -12,9 +12,17 @@ def classify_request(message):
                 "content": (
                     "Classify the user's request. "
                     "Return open_spotify for a direct request to open or launch Spotify. "
-                    "Return search_spotify for a request to search for, find, or play a specific song, artist, album, or podcast on Spotify. "
-                    "Return clarify_spotify for an ambiguous Spotify action request, such as 'Spotify, please'. "
-                    "Return unknown for ordinary questions, negated requests, future possibilities, or unrelated messages. "
+                    "Return search_spotify for a request to search for, find, or play a specific song, artist, album, or podcast, "
+                    "whether or not Spotify is named. "
+                    "Requests to find or search for things that are not music or podcasts are unknown. "
+                    "Return pause_spotify for a request to pause or stop the music, such as 'pause my music'. "
+                    "Return resume_spotify for a request to resume the music, such as 'carry on playing'. "
+                    "Return next_spotify for a request to skip ahead, such as 'skip this song' or 'next track'. "
+                    "Return previous_spotify for a request to go back, such as 'go back to the last song' or 'previous track'. "
+                    "Return whats_playing for a question about which song is playing right now. "
+                    "Return clarify_spotify when the user names Spotify but no action, such as 'Spotify, please' or 'Spotify?'. "
+                    "Return unknown for ordinary questions, requests telling Veylric not to do something, future possibilities, or unrelated messages. "
+                    "Questions about what Veylric did earlier, such as 'did you pause the music?', are unknown. "
                     "Return only one label. Do not perform any action."
                 )
             },
@@ -22,9 +30,14 @@ def classify_request(message):
         ]
     )
 
-    suggested_intent = response["message"]["content"].strip()
+    # Strip decoration such as **bold** or a full stop; the allowlist check below stays exact
+    suggested_intent = response["message"]["content"].strip().strip("*`'\". ")
 
-    allowed_intents = ["open_spotify", "search_spotify", "clarify_spotify", "unknown"]
+    allowed_intents = [
+        "open_spotify", "search_spotify", "clarify_spotify",
+        "pause_spotify", "resume_spotify", "next_spotify", "previous_spotify", "whats_playing",
+        "unknown"
+    ]
 
     if suggested_intent not in allowed_intents:
         suggested_intent = "unknown"

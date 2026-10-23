@@ -67,6 +67,11 @@ A personal assistant inspired by JARVIS, built while learning Python.
 - Ask for SEARCH approval when search words came only from Veylric's replies.
 - Add action records for tool outcomes (apps, searches, files, time, date) so chat can answer questions about what happened.
 - Keep five exchanges plus their action records, capped at 20 entries.
+- Report what's playing and pause, resume, skip, or go back in Spotify, verified by reading the player state afterwards.
+- Guard every Spotify AppleScript call so it can never launch Spotify.
+- Classify natural playback requests (pause, resume, next, previous, what's playing) and song requests that do not name Spotify.
+- Strip Markdown such as **label** from classifier replies before the exact allowlist check.
+- Tell the chat model it cannot act in its reply, so it does not claim to have paused or played anything.
 
 ## Beta 0.3 tests
 
@@ -87,6 +92,13 @@ A personal assistant inspired by JARVIS, built while learning Python.
 - "Did you open Chrome?" with no record: Veylric says it has no record.
 - Unconfirmed Spotify opening: Veylric does not claim success.
 - "Is that late?" after asking the time uses the recorded time.
+- What's playing read from the real Spotify without changing playback; "pause" while paused sends nothing.
+- Simulated Spotify: resume, skip, back, and pause verified.
+- Real Spotify: "previous song" a few seconds into a track restarted it (Spotify's own rule), so Veylric now rewinds to the start first and then goes back; only a track change counts as verified.
+- Simulated broken commands reported as not confirmed; closed Spotify received no commands.
+- Previous-track race reproduced with a delayed simulation and fixed by checking the position before the command.
+- 54/54 classifier checks across two runs, including "Play Sawadika by LISA", "Could you pause my music for me?", and traps such as "Should I skip breakfast?" and "Did you pause the music earlier?".
+- A natural pause request that previously produced a false "I've paused the music" now runs the verified control.
 
 ## Spotify search commands
 
@@ -99,7 +111,7 @@ A personal assistant inspired by JARVIS, built while learning Python.
 - AI tool selection supports Spotify opening only.
 - Time and date questions use a fixed phrase list.
 - Spotify search uses defined command formats.
-- Search opens results; it does not request playback.
+- Search opens results; it does not play a song by name.
 - Model classifications and conversational replies can be wrong.
 - Confirmation and file safeguards are enforced by Python.
 

@@ -16,6 +16,19 @@ assistant_name = "Veylric"
 conversation_history = []
 pending_clarification = None
 last_search_term = None
+music_words = [
+    "spotify", "play", "playing", "song", "songs", "music", "listen", "album", "artist", "track",
+    "playlist", "podcast", "search", "find", "pause", "resume", "skip"
+]
+# Classifier labels that map to the verified playback controls
+playback_intents = {"pause_spotify": "pause", "resume_spotify": "resume", "next_spotify": "next", "previous_spotify": "previous"}
+playing_phrases = ["what's playing", "what is playing", "what song is this", "what's this song", "what is this song", "now playing"]
+playback_phrases = {
+    "pause": ["pause", "pause music", "pause the music", "pause spotify"],
+    "resume": ["play", "resume", "play music", "resume music", "resume the music", "resume spotify", "unpause"],
+    "next": ["next", "next song", "next track", "skip", "skip song", "skip this song"],
+    "previous": ["previous", "previous song", "previous track", "last song", "go back"],
+}
 repeat_search_phrases = ["search it again", "search that again", "search again", "search for it again", "search for that again"]
 print(f"{assistant_name}: At your service, ma'am. Ready when you are.")
 
@@ -153,6 +166,116 @@ def run_spotify_search(search_term=None, needs_approval=False):
     else:
         print(f"{assistant_name}: I sent the search, but I can't confirm Spotify opened.")
         record_action(f'Sent a Spotify search for "{searched_term}". Not confirmed: Spotify did not appear to start.')
+# Spotify playback: AppleScript reads and controls the player
+def spotify_script(command):
+    # The "is running" guard inside the script means this can never launch Spotify
+    result = subprocess.run(
+        ["osascript", "-e", f'if application "Spotify" is running then tell application "Spotify" to {command}'],
+        capture_output=True,
+        text=True
+    )
+    if result.returncode != 0:
+        return None
+    return result.stdout.strip()
+def wait_for_spotify(check, timeout=3):
+    # check is a function; call it every half second until it returns True
+    deadline = time.time() + timeout
+    while time.time() < deadline:
+        if check():
+            return True
+        time.sleep(0.5)
+    return False
+def current_track():
+    name = spotify_script("get name of current track")
+    artist = spotify_script("get artist of current track")
+    if not name:
+        return None
+    return f'"{name}" by {artist}'
+def whats_playing():
+    if not is_app_running("Spotify"):
+        print(f"{assistant_name}: Spotify isn't open, ma'am, so nothing is playing.")
+        record_action("Checked Spotify: not running, so nothing is playing.")
+        return
+    state = spotify_script("get player state as text")
+    track = current_track()
+    if state is None:
+        print(f"{assistant_name}: I couldn't read Spotify's player, ma'am.")
+        record_action("Tried to read Spotify's player state. Failed.")
+    elif state == "stopped" or track is None:
+        print(f"{assistant_name}: Nothing is playing, ma'am.")
+        record_action("Checked Spotify: nothing is playing.")
+    elif state == "playing":
+        print(f"{assistant_name}: Now playing {track}, ma'am.")
+        record_action(f"Checked Spotify: playing {track}.")
+    else:
+        print(f"{assistant_name}: Spotify is paused on {track}, ma'am.")
+        record_action(f"Checked Spotify: paused on {track}.")
+def control_spotify(action):
+    descriptions = {"pause": "pause", "resume": "resume", "next": "skip to the next track", "previous": "go to the previous track"}
+    commands = {"pause": "pause", "resume": "play", "next": "next track", "previous": "previous track"}
+    description = descriptions[action]
+
+    if not is_app_running("Spotify"):
+        print(f"{assistant_name}: Spotify isn't open, ma'am.")
+        record_action(f"Did not {description}: Spotify is not running.")
+        return
+
+    state_before = spotify_script("get player state as text")
+    track_id_before = spotify_script("get id of current track")
+    position_before = float(spotify_script("get player position") or 0)
+    if action == "pause" and state_before == "paused":
+        print(f"{assistant_name}: Spotify is already paused, ma'am.")
+        record_action("Did not pause: Spotify was already paused.")
+        return
+    if action == "resume" and state_before == "playing":
+        print(f"{assistant_name}: Spotify is already playing, ma'am.")
+        record_action("Did not resume: Spotify was already playing.")
+        return
+
+    # Spotify's "previous" only restarts a song that is more than about 3 seconds in,
+    # so rewind to the start first; then "previous" really goes back a track
+    if action == "previous" and position_before >= 3:
+        spotify_script("set player position to 0")
+        wait_for_spotify(lambda: float(spotify_script("get player position") or 999) < 3)
+
+    if spotify_script(commands[action]) is None:
+        print(f"{assistant_name}: I couldn't {description}, ma'am.")
+        record_action(f"Tried to {description}. Failed: Spotify rejected the command.")
+        return
+
+    # Command sent; read Spotify back to verify the outcome
+    if action == "pause":
+        verified = wait_for_spotify(lambda: spotify_script("get player state as text") == "paused")
+    elif action == "resume":
+        verified = wait_for_spotify(lambda: spotify_script("get player state as text") == "playing")
+    else:
+        # Next and previous both count only if the track actually changed
+        verified = wait_for_spotify(lambda: spotify_script("get id of current track") != track_id_before)
+
+    if not verified:
+        print(f"{assistant_name}: I asked Spotify to {description}, but I can't confirm it worked.")
+        if action == "previous":
+            print(f"{assistant_name}: There may be no earlier song in this album or playlist.")
+        record_action(f"Asked Spotify to {description}. Not confirmed.")
+        return
+
+    track = current_track()
+    # Spotify resumes playback when skipping while paused; say so rather than hide it
+    started_playing = ""
+    if state_before != "playing" and spotify_script("get player state as text") == "playing":
+        started_playing = " Spotify is now playing."
+    if action == "pause":
+        print(f"{assistant_name}: Paused, ma'am.")
+        record_action(f"Paused Spotify. Verified: player is paused on {track}.")
+    elif action == "resume":
+        print(f"{assistant_name}: Resuming {track}, ma'am.")
+        record_action(f"Resumed Spotify. Verified: playing {track}.")
+    elif action == "next":
+        print(f"{assistant_name}: Skipped to {track}, ma'am.{started_playing}")
+        record_action(f"Skipped to the next track. Verified: now on {track}.{started_playing}")
+    else:
+        print(f"{assistant_name}: Back to {track}, ma'am.{started_playing}")
+        record_action(f"Went to the previous track. Verified: now on {track}.{started_playing}")
 def open_chrome():
     try:
         subprocess.run(["open", "-a", "Google Chrome"], check=True)
@@ -275,7 +398,14 @@ def chat_with_veylric(message):
                     "Use them to answer questions about actions. Never write action records yourself. "
                     "If there is no action record for an action, say you have no record of it. "
                     "Never claim an action succeeded unless an action record says it was verified or successful. "
-                    "Veylric cannot see the screen, search results, or playback, and cannot play music. Never offer to do these things. "
+                    "When asked directly, Veylric can open Spotify, Chrome, and Messages, search Spotify, "
+                    "pause, resume, skip, go back, say what's playing, and tell the time and date. "
+                    "These abilities run outside your reply. If the user asks for one, suggest a simple phrasing such as "
+                    "'search Spotify for Adele' or 'pause music'. "
+                    "Veylric cannot see the screen or search results, and cannot play a song by name. Never offer to do these things. "
+                    "Never mention Python or tell the user to write code. "
+                    "Your reply can never pause, play, skip, open, or search anything. If the user asks for one of these, "
+                    "say you haven't done it and suggest a phrasing such as 'pause music'. "
                     "Write plain text without Markdown such as bold or headings; replies appear in a terminal. "
                     "If asked to open something without a clear target, ask what to open. "
                     "If a question depends on information the user has not provided in this conversation, say you don't know and ask for it. Do not invent personal facts or imply you remember them. "
@@ -353,10 +483,17 @@ while True:
         tell_time()
     elif is_date_question(request):
         tell_date()
+    elif request.replace("’", "'").rstrip("?.!") in playing_phrases:
+        whats_playing()
+    elif any(request.rstrip("?.!") in phrases for phrases in playback_phrases.values()):
+        for action, phrases in playback_phrases.items():
+            if request.rstrip("?.!") in phrases:
+                control_spotify(action)
     else:
         try:
-            # Only ask the classifier when Spotify is mentioned
-            if "spotify" in message.lower():
+            # Only ask the classifier when a music or search word appears (whole words only)
+            message_words = [word.strip(".,!?") for word in message.lower().split()]
+            if any(word in music_words for word in message_words):
                 intent = classify_request(message)
             else:
                 intent = "unknown"
@@ -366,7 +503,7 @@ while True:
                 open_spotify()
             elif intent == "search_spotify":
                 if "play" in request.split():
-                    print(f"{assistant_name}: I can't start playback yet, ma'am, but I can search for it.")
+                    print(f"{assistant_name}: I can't play songs by name yet, ma'am, but I can search for it.")
                 search_term, source = extract_search_term(message, conversation_history)
                 # Safeguard: words from the model itself get checked before searching
                 needs_approval = source in ["veylric", "invented"]
@@ -379,6 +516,10 @@ while True:
                 elif source == "invented":
                     print(f"{assistant_name}: I'd like to check before searching, ma'am.")
                 run_spotify_search(search_term, needs_approval=needs_approval)
+            elif intent in playback_intents:
+                control_spotify(playback_intents[intent])
+            elif intent == "whats_playing":
+                whats_playing()
             elif intent == "clarify_spotify":
                 pending_clarification = "spotify"
                 print(f"{assistant_name}: What would you like me to do with Spotify?")
